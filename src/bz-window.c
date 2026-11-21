@@ -549,10 +549,6 @@ action_cancel_group (GtkWidget  *widget,
       entry_id = bz_entry_get_id (entry);
       if (g_strcmp0 (entry_id, id) == 0)
         {
-          g_message ("QDEBUG window: cancel %s (tracker status %d, active %d, pending %d)", id,
-                     bz_transaction_entry_tracker_get_status (tracker),
-                     bz_transaction_entry_tracker_get_active (tracker),
-                     bz_transaction_entry_tracker_get_pending (tracker));
           grouped = g_object_get_data (G_OBJECT (entry), "grouped-entries");
           if (grouped != NULL)
             {

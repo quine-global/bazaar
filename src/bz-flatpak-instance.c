@@ -638,7 +638,6 @@ bz_flatpak_instance_cancel_task_for_entry (BzBackend *backend,
   locker = g_mutex_locker_new (&self->transactions_mutex);
 
   cancellables = g_hash_table_lookup (self->ongoing_cancellables, entry);
-  g_message ("QDEBUG cancel_task_for_entry %s: %u cancellables", bz_entry_get_id (entry), cancellables ? cancellables->len : 0);
   if (cancellables == NULL)
     return FALSE;
 
@@ -2780,7 +2779,6 @@ transaction_fiber (TransactionData *data)
                  (DexFuture *const *) jobs->pdata,
                  jobs->len),
              NULL);
-  g_message ("QDEBUG backend: all %u jobs settled", jobs->len);
 
   g_mutex_lock (&self->transactions_mutex);
 
@@ -2833,13 +2831,11 @@ transaction_fiber (TransactionData *data)
 #undef UNREGISTER_CANCELLABLES
   g_mutex_unlock (&self->transactions_mutex);
 
-  g_message ("QDEBUG backend: awaiting %u send futures", data->send_futures->len);
   if (data->send_futures->len > 0)
     dex_await (dex_future_allv (
                    (DexFuture *const *) data->send_futures->pdata,
                    data->send_futures->len),
                NULL);
-  g_message ("QDEBUG backend: send futures done, closing channel");
 
   errored = g_hash_table_new_full (
       g_direct_hash, g_direct_equal,
@@ -2878,9 +2874,7 @@ transaction_job_fiber (TransactionJobData *data)
   g_signal_connect (transaction, "operation-error", G_CALLBACK (transaction_operation_error), parent);
   g_signal_connect (transaction, "ready", G_CALLBACK (transaction_ready), parent);
 
-  g_message ("QDEBUG job: flatpak_transaction_run start");
   result = flatpak_transaction_run (transaction, cancellable, &local_error);
-  g_message ("QDEBUG job: flatpak_transaction_run returned %d (%s)", result, local_error ? local_error->message : "ok");
   if (!result)
     return dex_future_new_reject (
         BZ_FLATPAK_ERROR,
