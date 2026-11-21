@@ -782,6 +782,7 @@ transaction_fiber (QueuedScheduleData *data)
         }
     }
 
+  g_message ("QDEBUG manager: channel closed, %u ops left", g_hash_table_size (op_set));
   /* Finish off tasks that may not have received a final update */
   g_hash_table_iter_init (&iter, op_set);
   for (;;)
@@ -836,6 +837,7 @@ transaction_finally (DexFuture          *future,
       g_timer_elapsed (data->timer, NULL));
 
   value = dex_future_get_value (future, &local_error);
+  g_message ("QDEBUG manager: transaction_finally (%s)", local_error ? local_error->message : "ok");
   g_object_set (
       transaction,
       "status", status,

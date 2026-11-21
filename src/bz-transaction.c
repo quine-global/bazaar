@@ -719,6 +719,7 @@ finish (BzTransactionPrivate *priv)
       g_autoptr (BzTransactionEntryTracker) tracker = NULL;
 
       tracker = g_list_model_get_item (G_LIST_MODEL (priv->trackers), i);
+      g_message ("QDEBUG transaction: finish tracker %s", bz_entry_get_id (bz_transaction_entry_tracker_get_entry (tracker)));
       bz_transaction_entry_tracker_set_active (tracker, FALSE);
       bz_transaction_entry_tracker_set_pending (tracker, FALSE);
       if (bz_transaction_entry_tracker_get_status (tracker) == BZ_TRANSACTION_ENTRY_STATUS_CANCELLED)
