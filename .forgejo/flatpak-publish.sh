@@ -9,9 +9,12 @@
 #
 # Run by .forgejo/workflows/flatpak.yml, once per architecture. On the
 # runner it only starts a Fedora container: flatpak-builder needs to run
-# privileged (bubblewrap), and the GNOME SDK and build cache live in podman
-# volumes (shared with KeyMaker's and Quple's builds) so the next run
-# doesn't download them again.
+# privileged (bubblewrap), and the GNOME SDK (shared with KeyMaker's and
+# Quple's builds) and build cache live under /var/cache/quine-flatpak/ so
+# the next run doesn't download them again. Not in podman volumes: those
+# sit on the containers disk, which on runner-arm64-linux (49 GB) the
+# quine-linux live ISO build needs whole (2026-11-21). /var/cache is on
+# the root disk.
 #
 # Environment: UPLOAD (1 to upload); MINIO_ENDPOINT, MINIO_BUCKET,
 # MINIO_ACCESS_KEY, MINIO_SECRET_KEY (needed only to upload); GITHUB_SHA
@@ -23,10 +26,13 @@ if [ "$UPLOAD" = 1 ]; then
   : "${MINIO_ACCESS_KEY:?}" "${MINIO_SECRET_KEY:?}" "${MINIO_ENDPOINT:?}" "${MINIO_BUCKET:?}"
 fi
 
+cache=/var/cache/quine-flatpak
+mkdir -p "$cache/sdk" "$cache/bazaar"
+
 exec podman run --rm --privileged \
   -v "$PWD":/src:ro \
-  -v quine-flatpak-sdk:/var/lib/flatpak \
-  -v quine-flatpak-builder:/cache \
+  -v "$cache/sdk":/var/lib/flatpak \
+  -v "$cache/bazaar":/cache \
   -e UPLOAD="$UPLOAD" \
   -e COMMIT="${GITHUB_SHA:-unknown}" \
   -e RCLONE_CONFIG_STORE_TYPE=s3 \
