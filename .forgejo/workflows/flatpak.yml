@@ -1,0 +1,49 @@
+name: flatpak
+
+# Builds this fork's Bazaar as a Flatpak (Flathub's manifest with this
+# checkout: build-aux/flatpak/io.github.kolunmi.Bazaar.flathub.yaml), for
+# both architectures. Pushes to `quine` (Bazaar's release plus our patches)
+# also upload it to the bucket's flatpak/incoming/ (.forgejo/flatpak-publish.sh),
+# and quine-global/flatpak-repo publishes it from there to Quine Linux's
+# Flatpak repo (flatpak.quineglobal.com) within about 10 minutes. Other
+# branches only build, to check that they do. `main` mirrors upstream and
+# doesn't carry this file.
+#
+# Secrets/variables (quine-global, org-wide): MINIO_SECRET_KEY,
+# MINIO_ACCESS_KEY (variable or secret). Optional variables:
+# MINIO_ENDPOINT (default https://s3.quineglobal.com), MINIO_BUCKET
+# (default quine-linux).
+
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: bazaar-flatpak-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MINIO_ENDPOINT: ${{ vars.MINIO_ENDPOINT || 'https://s3.quineglobal.com' }}
+  MINIO_BUCKET: ${{ vars.MINIO_BUCKET || 'quine-linux' }}
+  MINIO_ACCESS_KEY: ${{ vars.MINIO_ACCESS_KEY || secrets.MINIO_ACCESS_KEY }}
+  UPLOAD: ${{ github.ref == 'refs/heads/quine' && '1' || '0' }}
+
+jobs:
+  x86_64:
+    runs-on: runner-x86-linux
+    steps:
+      - uses: https://forge.in.quineglobal.com/quine-global/mirror-actions-checkout@v4
+      - name: Build (and upload, on quine)
+        env:
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: bash .forgejo/flatpak-publish.sh
+
+  aarch64:
+    runs-on: runner-arm64-linux
+    steps:
+      - uses: https://forge.in.quineglobal.com/quine-global/mirror-actions-checkout@v4
+      - name: Build (and upload, on quine)
+        env:
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: bash .forgejo/flatpak-publish.sh
