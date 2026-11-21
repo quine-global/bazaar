@@ -538,6 +538,8 @@ action_cancel_group (GtkWidget  *widget,
       g_autoptr (BzTransactionEntryTracker) tracker = NULL;
       BzEntry    *entry                             = NULL;
       const char *entry_id                          = NULL;
+      GPtrArray  *grouped                           = NULL;
+      gboolean    cancelled                         = FALSE;
 
       tracker = g_list_model_get_item (trackers, i);
       entry   = bz_transaction_entry_tracker_get_entry (tracker);
@@ -551,7 +553,19 @@ action_cancel_group (GtkWidget  *widget,
                      bz_transaction_entry_tracker_get_status (tracker),
                      bz_transaction_entry_tracker_get_active (tracker),
                      bz_transaction_entry_tracker_get_pending (tracker));
-          if (bz_backend_cancel_task_for_entry (backend, entry))
+          grouped = g_object_get_data (G_OBJECT (entry), "grouped-entries");
+          if (grouped != NULL)
+            {
+              /* Synthetic group entries (e.g. "runtime-updates") are never
+                 registered with the backend; cancel their members instead */
+              for (guint j = 0; j < grouped->len; j++)
+                cancelled |= bz_backend_cancel_task_for_entry (
+                    backend, g_ptr_array_index (grouped, j));
+            }
+          else
+            cancelled = bz_backend_cancel_task_for_entry (backend, entry);
+
+          if (cancelled)
             g_object_set (tracker, "status", BZ_TRANSACTION_ENTRY_STATUS_CANCELLED, NULL);
           break;
         }
